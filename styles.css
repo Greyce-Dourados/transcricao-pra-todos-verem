@@ -1,0 +1,102 @@
+/* Estilos customizados para a aplicação */
+
+/* Animações */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Estilos para drag and drop */
+.drag-over {
+    border-color: #3B82F6 !important;
+    background-color: #EFF6FF;
+}
+
+/* Estilos para o textarea da transcrição */
+#transcriptionText {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+}
+
+/* Estilos para botões de estado */
+.btn-success {
+    background-color: #10B981;
+}
+
+.btn-success:hover {
+    background-color: #059669;
+}
+
+/* Estilos para notificações */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification.success {
+    background-color: #10B981;
+}
+
+.notification.error {
+    background-color: #EF4444;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Estilos responsivos adicionais */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Estilos para loading */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Estilos para o preview da imagem */
+#previewImage, #resultImage {
+    object-fit: contain;
+    max-height: 400px;
+}
+
+/* Estilos para o botão de copiar */
+#copyBtn {
+    transition: all 0.2s ease;
+}
+
+#copyBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para o botão do Outlook */
+#outlookBtn {
+    transition: all 0.2s ease;
+}
+
+#outlookBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+} 
