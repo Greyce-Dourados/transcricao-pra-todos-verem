@@ -1,5 +1,5 @@
 // Configurações da API OpenAI
-const OPENAI_API_KEY = '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';
+let OPENAI_API_KEY = localStorage.getItem('openai_api_key') || '';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Sistema de Autenticação
@@ -101,135 +101,205 @@ class Auth {
     }
 
     // Verificar permissões
-    hasPermission(permission) {
-        if (!this.isAuthenticated) return false;
-        
-        // Aqui você pode adicionar lógica de permissões específicas
-        switch (permission) {
-            case 'use_transcription':
-                return this.currentUser.email.endsWith(this.ALLOWED_DOMAIN);
-            case 'admin':
-                return false; // Implementar lógica de admin se necessário
-            default:
-                return false;
-        }
+    hasPermission() {
+        return this.isUserAuthenticated();
     }
 }
 
-// Instância global do sistema de autenticação
+// Inicializar sistema de autenticação
 const auth = new Auth();
 
 // Elementos do DOM
-const loginScreen = document.getElementById('loginScreen');
+const loginSection = document.getElementById('loginSection');
 const mainApp = document.getElementById('mainApp');
-const userEmail = document.getElementById('userEmail');
-const logoutBtn = document.getElementById('logoutBtn');
-const loginError = document.getElementById('loginError');
 const loginForm = document.getElementById('loginForm');
 const emailInput = document.getElementById('emailInput');
 const nameInput = document.getElementById('nameInput');
+const userInfo = document.getElementById('userInfo');
+const logoutBtn = document.getElementById('logoutBtn');
 
-const imageInput = document.getElementById('imageInput');
-const imagePreview = document.getElementById('imagePreview');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const transcribeBtn = document.getElementById('transcribeBtn');
 const previewImage = document.getElementById('previewImage');
-const generateBtn = document.getElementById('generateBtn');
-const generateBtnText = document.getElementById('generateBtnText');
-const loadingSpinner = document.getElementById('loadingSpinner');
 const resultSection = document.getElementById('resultSection');
 const resultImage = document.getElementById('resultImage');
 const transcriptionText = document.getElementById('transcriptionText');
 const copyBtn = document.getElementById('copyBtn');
 const saveBtn = document.getElementById('saveBtn');
 const outlookBtn = document.getElementById('outlookBtn');
-const errorMessage = document.getElementById('errorMessage');
-const errorText = document.getElementById('errorText');
+const loadingSpinner = document.getElementById('loadingSpinner');
+
+// Configuração da API Key
+const apiKeyInput = document.getElementById('apiKeyInput');
+const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+const apiKeyStatus = document.getElementById('apiKeyStatus');
 
 // Variáveis globais
-let selectedImage = null;
+let selectedFile = null;
 let transcription = '';
 
-// Event Listeners
-imageInput.addEventListener('change', handleImageSelect);
-generateBtn.addEventListener('click', generateTranscription);
-copyBtn.addEventListener('click', copyTranscription);
-saveBtn.addEventListener('click', saveTranscription);
-outlookBtn.addEventListener('click', openInOutlook);
+// Verificar autenticação ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    if (auth.checkSavedAuth()) {
+        showMainApp();
+    } else {
+        showLoginForm();
+    }
+    
+    // Verificar se a API key está configurada
+    updateApiKeyStatus();
+});
 
-// Função para lidar com a seleção de imagem
-function handleImageSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+// Função para mostrar formulário de login
+function showLoginForm() {
+    loginSection.classList.remove('hidden');
+    mainApp.classList.add('hidden');
+}
 
-    // Validar tipo de arquivo
-    if (!file.type.startsWith('image/')) {
-        showError('Por favor, selecione um arquivo de imagem válido.');
+// Função para mostrar aplicação principal
+function showMainApp() {
+    loginSection.classList.add('hidden');
+    mainApp.classList.remove('hidden');
+    
+    const user = auth.getCurrentUser();
+    if (user) {
+        userInfo.textContent = `Olá, ${user.name}!`;
+    }
+}
+
+// Função para lidar com o login
+function handleLogin(event) {
+    event.preventDefault();
+    
+    const email = emailInput.value.trim();
+    const name = nameInput.value.trim();
+    
+    const result = auth.authenticateUser(email, name);
+    
+    if (result.success) {
+        showMainApp();
+        showNotification('Login realizado com sucesso!', 'success');
+    } else {
+        showError(result.error);
+    }
+}
+
+// Função para fazer logout
+function handleLogout() {
+    auth.logout();
+    showLoginForm();
+    showNotification('Logout realizado com sucesso!', 'success');
+}
+
+// Função para salvar API Key
+function saveApiKey() {
+    const apiKey = apiKeyInput.value.trim();
+    
+    if (!apiKey) {
+        showError('Por favor, insira uma chave da API.');
         return;
     }
+    
+    if (!apiKey.startsWith('sk-')) {
+        showError('A chave da API deve começar com "sk-".');
+        return;
+    }
+    
+    // Salvar no localStorage
+    localStorage.setItem('openai_api_key', apiKey);
+    OPENAI_API_KEY = apiKey;
+    
+    updateApiKeyStatus();
+    showNotification('Chave da API salva com sucesso!', 'success');
+    
+    // Limpar o campo
+    apiKeyInput.value = '';
+}
 
-    // Validar tamanho (10MB)
+// Função para atualizar status da API Key
+function updateApiKeyStatus() {
+    const savedKey = localStorage.getItem('openai_api_key');
+    
+    if (savedKey) {
+        apiKeyStatus.textContent = '✅ Chave configurada';
+        apiKeyStatus.className = 'text-green-600 font-medium';
+        OPENAI_API_KEY = savedKey;
+    } else {
+        apiKeyStatus.textContent = '❌ Chave não configurada';
+        apiKeyStatus.className = 'text-red-600 font-medium';
+    }
+}
+
+// Função para lidar com seleção de arquivo
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    
+    if (!file) return;
+    
+    // Validar tipo de arquivo
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        showError('Por favor, selecione uma imagem válida (JPEG, PNG, GIF, WebP).');
+        return;
+    }
+    
+    // Validar tamanho (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
         showError('A imagem deve ter no máximo 10MB.');
         return;
     }
-
-    selectedImage = file;
+    
+    selectedFile = file;
     
     // Mostrar preview
     const reader = new FileReader();
     reader.onload = function(e) {
         previewImage.src = e.target.result;
-        imagePreview.classList.remove('hidden');
-        imagePreview.classList.add('fade-in');
-        
-        // Habilitar botão de gerar transcrição
-        generateBtn.disabled = false;
-        
-        // Esconder seção de resultado anterior
-        resultSection.classList.add('hidden');
-        hideError();
+        previewImage.classList.remove('hidden');
+        uploadBtn.disabled = false;
+        transcribeBtn.disabled = false; // Habilitar botão de transcrição
     };
     reader.readAsDataURL(file);
+    
+    showNotification('Imagem selecionada com sucesso!', 'success');
 }
 
-// Função para gerar transcrição usando OpenAI
+// Função para gerar transcrição
 async function generateTranscription() {
-    if (!selectedImage) {
+    if (!selectedFile) {
         showError('Por favor, selecione uma imagem primeiro.');
         return;
     }
-
+    
+    if (!OPENAI_API_KEY) {
+        showError('Por favor, configure sua chave da API OpenAI primeiro.');
+        return;
+    }
+    
     setLoading(true);
-    hideError();
-
+    
     try {
         // Converter imagem para base64
-        const base64Image = await fileToBase64(selectedImage);
+        const base64Image = await fileToBase64(selectedFile);
         
-        // Preparar dados para a API
+        // Preparar dados da requisição
         const requestData = {
-            model: "gpt-4o",
+            model: 'gpt-4o',
             messages: [
                 {
-                    role: "system",
-                    content: "Você é um especialista em adaptar conteúdos para deficientes visuais."
+                    role: 'system',
+                    content: 'Você é um especialista em adaptar conteúdos para deficientes visuais.'
                 },
                 {
-                    role: "user",
+                    role: 'user',
                     content: [
                         {
-                            type: "text",
-                            text: `Transcreva a imagem a seguir de forma corrida (não topicalizada), simples e objetiva.
-Seja bem rigoroso ao transcrever os números e estatísticas da imagem.
-Pule introduções e apresentações, vá direto ao conteúdo.
-
-Orientações:
-- Siglas como SEM1, refira como semana 1.
-- Use sempre o nome da cidade, nunca a sigla, mesmo que na imagem tenha a sigla.
-- Escreva os números com numerais, não por extenso.
-- As datas estão no formato dia/mês/ano`
+                            type: 'text',
+                            text: 'Transcreva a imagem a seguir de forma corrida (não topicalizada), simples e objetiva. Seja bem rigoroso ao transcrever os números e estatísticas da imagem. Pule introduções e apresentações, vá direto ao conteúdo. Orientações: - Siglas como SEM1, refira como semana 1. - Use sempre o nome da cidade, nunca a sigla, mesmo que na imagem tenha a sigla. - Escreva os números com numerais, não por extenso. - As datas estão no formato dia/mês/ano'
                         },
                         {
-                            type: "image_url",
+                            type: 'image_url',
                             image_url: {
                                 url: base64Image
                             }
@@ -243,11 +313,6 @@ Orientações:
 
         // Fazer requisição para a API
         console.log('Fazendo requisição para OpenAI...');
-        console.log('URL:', OPENAI_API_URL);
-        console.log('Headers:', {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY.substring(0, 20)}...`
-        });
         
         const response = await fetch(OPENAI_API_URL, {
             method: 'POST',
@@ -348,49 +413,56 @@ function saveTranscription() {
 
 // Função para abrir no Outlook
 async function openInOutlook() {
-    const subject = 'Transcrição #PraTodosVerem';
-    const body = `#PraTodosVerem\n\n${transcription}\n\n---\nTranscrição gerada automaticamente pela ferramenta #PraTodosVerem`;
+    if (!transcription) {
+        showError('Nenhuma transcrição disponível.');
+        return;
+    }
     
-    // Tentar abrir Outlook Online com deep link
     try {
-        const outlookUrl = 'https://outlook.office.com/mail/deeplink/compose?subject=' + 
-                          encodeURIComponent(subject) + 
-                          '&body=' + encodeURIComponent(body);
+        // Tentar abrir via deep link do Outlook
+        const emailBody = `#PraTodosVerem\n\n${transcription}`;
+        const outlookUrl = `https://outlook.office.com/mail/deeplink/compose?subject=Transcrição%20#PraTodosVerem&body=${encodeURIComponent(emailBody)}`;
         
-        // Abrir em nova aba
         const newWindow = window.open(outlookUrl, '_blank');
         
-        if (newWindow) {
-            showNotification('Outlook Online aberto com transcrição!', 'success');
-        } else {
-            // Fallback: copiar conteúdo e abrir Outlook
-            await navigator.clipboard.writeText(body);
-            window.location.href = 'https://outlook.office.com/mail/';
-            showNotification('Transcrição copiada! Cole no e-mail e anexe a imagem.', 'success');
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+            // Fallback: copiar texto e abrir Outlook Web
+            await navigator.clipboard.writeText(emailBody);
+            showNotification('Texto copiado! Abrindo Outlook Web...', 'info');
+            window.open('https://outlook.office.com/mail/', '_blank');
         }
         
     } catch (error) {
         console.error('Erro ao abrir Outlook:', error);
-        showNotification('Erro ao abrir Outlook. Tente manualmente.', 'error');
+        showError('Erro ao abrir Outlook. Tente copiar o texto manualmente.');
     }
 }
 
-// Função para abrir mailto
-function openMailto(subject, body) {
-    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl, '_blank');
-    
-    showNotification('E-mail aberto! Anexe a imagem manualmente.', 'success');
+// Função para mostrar/ocultar loading
+function setLoading(loading) {
+    if (loading) {
+        loadingSpinner.classList.remove('hidden');
+        transcribeBtn.disabled = true;
+    } else {
+        loadingSpinner.classList.add('hidden');
+        transcribeBtn.disabled = false;
+    }
 }
 
 // Função para mostrar notificação
-function showNotification(message, type = 'success') {
+function showNotification(message, type = 'info') {
+    // Criar elemento de notificação
     const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
+    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
     notification.textContent = message;
     
     document.body.appendChild(notification);
     
+    // Remover após 3 segundos
     setTimeout(() => {
         notification.remove();
     }, 3000);
@@ -398,122 +470,16 @@ function showNotification(message, type = 'success') {
 
 // Função para mostrar erro
 function showError(message) {
-    errorText.textContent = message;
-    errorMessage.classList.remove('hidden');
-    errorMessage.classList.add('fade-in');
+    showNotification(message, 'error');
 }
 
-// Função para esconder erro
-function hideError() {
-    errorMessage.classList.add('hidden');
-}
-
-// Função para configurar estado de loading
-function setLoading(loading) {
-    if (loading) {
-        generateBtn.disabled = true;
-        generateBtnText.textContent = 'Gerando transcrição...';
-        loadingSpinner.classList.remove('hidden');
-    } else {
-        generateBtn.disabled = false;
-        generateBtnText.textContent = 'Gerar Transcrição com IA';
-        loadingSpinner.classList.add('hidden');
-    }
-}
-
-// Funções de autenticação
-function handleLogin(event) {
-    event.preventDefault();
-    
-    const email = emailInput.value.trim();
-    const name = nameInput.value.trim();
-    
-    // Usar o sistema de autenticação
-    const result = auth.authenticateUser(email, name);
-    
-    if (result.success) {
-        // Login bem-sucedido
-        loginForm.reset();
-        loginError.classList.add('hidden');
-        showMainApp();
-        showNotification('Login realizado com sucesso!', 'success');
-    } else {
-        // Erro no login
-        showLoginError(result.error);
-    }
-}
-
-function showLoginError(message) {
-    loginError.textContent = message;
-    loginError.classList.remove('hidden');
-}
-
-function showMainApp() {
-    loginScreen.classList.add('hidden');
-    mainApp.classList.remove('hidden');
-    
-    // Atualizar informações do usuário
-    const user = auth.getCurrentUser();
-    userEmail.textContent = user.email;
-}
-
-function logout() {
-    auth.logout();
-    
-    // Voltar para tela de login
-    mainApp.classList.add('hidden');
-    loginScreen.classList.remove('hidden');
-    
-    // Limpar erros
-    loginError.classList.add('hidden');
-    
-    showNotification('Logout realizado com sucesso!', 'success');
-}
-
-// Verificar se usuário já está logado
-function checkAuth() {
-    if (auth.checkSavedAuth()) {
-        showMainApp();
-        return;
-    }
-    
-    // Se não estiver logado, mostrar tela de login
-    mainApp.classList.add('hidden');
-    loginScreen.classList.remove('hidden');
-}
-
-// Inicialização
-document.addEventListener('DOMContentLoaded', function() {
-    // Verificar autenticação
-    checkAuth();
-    
-    // Event listeners para autenticação
-    loginForm.addEventListener('submit', handleLogin);
-    logoutBtn.addEventListener('click', logout);
-    
-    // Desabilitar botão de gerar transcrição inicialmente
-    generateBtn.disabled = true;
-    
-    // Adicionar suporte para drag and drop
-    const uploadArea = document.querySelector('.border-dashed');
-    
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('drag-over');
-    });
-    
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('drag-over');
-    });
-    
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('drag-over');
-        
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            imageInput.files = files;
-            handleImageSelect({ target: { files: files } });
-        }
-    });
-}); 
+// Event listeners
+loginForm.addEventListener('submit', handleLogin);
+logoutBtn.addEventListener('click', handleLogout);
+fileInput.addEventListener('change', handleFileSelect);
+uploadBtn.addEventListener('click', () => fileInput.click());
+transcribeBtn.addEventListener('click', generateTranscription);
+copyBtn.addEventListener('click', copyTranscription);
+saveBtn.addEventListener('click', saveTranscription);
+outlookBtn.addEventListener('click', openInOutlook);
+saveApiKeyBtn.addEventListener('click', saveApiKey); 
