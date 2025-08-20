@@ -1,7 +1,7 @@
 // Configurações do backend
 module.exports = {
     // Chave da API OpenAI (em produção, use variáveis de ambiente)
-    OPENAI_API_KEY: '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',
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || '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', // Chave da OpenAI atualizada
     
     // Porta do servidor
     PORT: process.env.PORT || 3001,

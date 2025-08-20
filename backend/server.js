@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Configuração do OpenAI
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || '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'
+    apiKey: process.env.OPENAI_API_KEY || require('./config').OPENAI_API_KEY
 });
 
 // Configuração do Multer para upload de arquivos

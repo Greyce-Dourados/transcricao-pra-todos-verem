@@ -1,5 +1,5 @@
 // Configurações da API OpenAI
-const OPENAI_API_KEY = 'SUA_CHAVE_OPENAI_AQUI'; // Substitua pela sua chave da OpenAI
+const OPENAI_API_KEY = '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';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Sistema de Autenticação
@@ -242,6 +242,13 @@ Orientações:
         };
 
         // Fazer requisição para a API
+        console.log('Fazendo requisição para OpenAI...');
+        console.log('URL:', OPENAI_API_URL);
+        console.log('Headers:', {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY.substring(0, 20)}...`
+        });
+        
         const response = await fetch(OPENAI_API_URL, {
             method: 'POST',
             headers: {
@@ -251,7 +258,11 @@ Orientações:
             body: JSON.stringify(requestData)
         });
 
+        console.log('Status da resposta:', response.status, response.statusText);
+        
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Resposta de erro completa:', errorText);
             throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
         }
 

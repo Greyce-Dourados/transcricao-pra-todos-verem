@@ -31,4 +31,8 @@ build/
 
 # Backend
 backend/node_modules/
-backend/.env 
+backend/.env
+backend/config.js
+backend/server-secure.js
+backend/start-secure.sh
+backend/INSTRUCOES_SEGURANCA.md 

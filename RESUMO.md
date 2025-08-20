@@ -91,7 +91,7 @@ A chave da OpenAI está configurada em:
 - **Frontend:** `script.js` linha 2
 - **Backend:** `backend/config.js` linha 3
 
-**Chave atual:** `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`
+**Chave atual:** `SUA_CHAVE_OPENAI_AQUI` (substitua pela sua chave)
 
 ## 📡 Endpoints da API (Backend)
 
