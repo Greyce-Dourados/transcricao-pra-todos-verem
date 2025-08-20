@@ -1,5 +1,5 @@
 // Configurações da API OpenAI
-const OPENAI_API_KEY = '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';
+const OPENAI_API_KEY = 'SUA_CHAVE_OPENAI_AQUI'; // Substitua pela sua chave da OpenAI
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Sistema de Autenticação
